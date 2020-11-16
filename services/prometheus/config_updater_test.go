@@ -17,13 +17,10 @@
 package prometheus
 
 import (
+	"github.com/percona/promconfig"
 	"strings"
 	"testing"
 
-	"github.com/Percona-Lab/promconfig/config"
-	sd_config "github.com/Percona-Lab/promconfig/discovery/config"
-	"github.com/Percona-Lab/promconfig/discovery/targetgroup"
-	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -50,18 +47,18 @@ func getConfigUpdater() *configUpdater {
 			Targets: []string{"1.2.3.4:12345"},
 		}},
 	}}
-	fileData := []*config.ScrapeConfig{{
+	fileData := []*promconfig.ScrapeConfig{{
 		JobName: "prometheus",
-		ServiceDiscoveryConfig: sd_config.ServiceDiscoveryConfig{
-			StaticConfigs: []*targetgroup.Group{{
-				Targets: []model.LabelSet{{"__address__": "127.0.0.1:9090"}},
+		ServiceDiscoveryConfig: promconfig.ServiceDiscoveryConfig{
+			StaticConfigs: []*promconfig.Group{{
+				Targets: []string{"127.0.0.1:9090"},
 			}},
 		},
 	}, {
 		JobName: "postgresql",
-		ServiceDiscoveryConfig: sd_config.ServiceDiscoveryConfig{
-			StaticConfigs: []*targetgroup.Group{{
-				Targets: []model.LabelSet{{"__address__": "1.2.3.4:12345"}},
+		ServiceDiscoveryConfig: promconfig.ServiceDiscoveryConfig{
+			StaticConfigs: []*promconfig.Group{{
+				Targets: []string{"1.2.3.4:12345"},
 			}},
 		},
 	}}
@@ -91,25 +88,25 @@ func TestConfigUpdaterAddSetRemoveScrapeConfig(t *testing.T) {
 			Targets: []string{"5.6.7.8:12345"},
 		}},
 	}}, configUpdater.consulData)
-	assertYAMLEqual(t, []*config.ScrapeConfig{{
+	assertYAMLEqual(t, []promconfig.ScrapeConfig{{
 		JobName: "prometheus",
-		ServiceDiscoveryConfig: sd_config.ServiceDiscoveryConfig{
-			StaticConfigs: []*targetgroup.Group{{
-				Targets: []model.LabelSet{{"__address__": "127.0.0.1:9090"}},
+		ServiceDiscoveryConfig: promconfig.ServiceDiscoveryConfig{
+			StaticConfigs: []*promconfig.Group{{
+				Targets: []string{"127.0.0.1:9090"},
 			}},
 		},
 	}, {
 		JobName: "postgresql",
-		ServiceDiscoveryConfig: sd_config.ServiceDiscoveryConfig{
-			StaticConfigs: []*targetgroup.Group{{
-				Targets: []model.LabelSet{{"__address__": "1.2.3.4:12345"}},
+		ServiceDiscoveryConfig: promconfig.ServiceDiscoveryConfig{
+			StaticConfigs: []*promconfig.Group{{
+				Targets: []string{"1.2.3.4:12345"},
 			}},
 		},
 	}, {
 		JobName: "AddSetRemoveScrapeConfig",
-		ServiceDiscoveryConfig: sd_config.ServiceDiscoveryConfig{
-			StaticConfigs: []*targetgroup.Group{{
-				Targets: []model.LabelSet{{"__address__": "5.6.7.8:12345"}},
+		ServiceDiscoveryConfig: promconfig.ServiceDiscoveryConfig{
+			StaticConfigs: []*promconfig.Group{{
+				Targets: []string{"5.6.7.8:12345"},
 			}},
 		},
 	}}, configUpdater.fileData)
@@ -148,26 +145,28 @@ func TestConfigUpdaterAddSetRemoveScrapeConfig(t *testing.T) {
 			}},
 		}},
 	}}, configUpdater.consulData)
-	assertYAMLEqual(t, []*config.ScrapeConfig{{
+	assertYAMLEqual(t, []*promconfig.ScrapeConfig{{
 		JobName: "prometheus",
-		ServiceDiscoveryConfig: sd_config.ServiceDiscoveryConfig{
-			StaticConfigs: []*targetgroup.Group{{
-				Targets: []model.LabelSet{{"__address__": "127.0.0.1:9090"}},
+		ServiceDiscoveryConfig: promconfig.ServiceDiscoveryConfig{
+			StaticConfigs: []*promconfig.Group{{
+				Targets: []string{"127.0.0.1:9090"},
 			}},
 		},
 	}, {
 		JobName: "postgresql",
-		ServiceDiscoveryConfig: sd_config.ServiceDiscoveryConfig{
-			StaticConfigs: []*targetgroup.Group{{
-				Targets: []model.LabelSet{{"__address__": "1.2.3.4:12345"}},
+		ServiceDiscoveryConfig: promconfig.ServiceDiscoveryConfig{
+			StaticConfigs: []*promconfig.Group{{
+				Targets: []string{"1.2.3.4:12345"},
 			}},
 		},
 	}, {
 		JobName: "AddSetRemoveScrapeConfig",
-		ServiceDiscoveryConfig: sd_config.ServiceDiscoveryConfig{
-			StaticConfigs: []*targetgroup.Group{{
-				Targets: []model.LabelSet{{"__address__": "5.6.7.8:12345"}},
-				Labels:  model.LabelSet{"instance": "test_host"},
+		ServiceDiscoveryConfig: promconfig.ServiceDiscoveryConfig{
+			StaticConfigs: []*promconfig.Group{{
+				Targets: []string{"5.6.7.8:12345"},
+				Labels: map[string]string{
+					"instance": "test_host",
+				},
 			}},
 		},
 	}}, configUpdater.fileData)
@@ -189,18 +188,18 @@ func TestConfigUpdaterAddSetRemoveScrapeConfig(t *testing.T) {
 			Targets: []string{"1.2.3.4:12345"},
 		}},
 	}}, configUpdater.consulData)
-	assertYAMLEqual(t, []*config.ScrapeConfig{{
+	assertYAMLEqual(t, []*promconfig.ScrapeConfig{{
 		JobName: "prometheus",
-		ServiceDiscoveryConfig: sd_config.ServiceDiscoveryConfig{
-			StaticConfigs: []*targetgroup.Group{{
-				Targets: []model.LabelSet{{"__address__": "127.0.0.1:9090"}},
+		ServiceDiscoveryConfig: promconfig.ServiceDiscoveryConfig{
+			StaticConfigs: []*promconfig.Group{{
+				Targets: []string{"127.0.0.1:9090"},
 			}},
 		},
 	}, {
 		JobName: "postgresql",
-		ServiceDiscoveryConfig: sd_config.ServiceDiscoveryConfig{
-			StaticConfigs: []*targetgroup.Group{{
-				Targets: []model.LabelSet{{"__address__": "1.2.3.4:12345"}},
+		ServiceDiscoveryConfig: promconfig.ServiceDiscoveryConfig{
+			StaticConfigs: []*promconfig.Group{{
+				Targets: []string{"1.2.3.4:12345"},
 			}},
 		},
 	}}, configUpdater.fileData)

@@ -17,13 +17,13 @@
 package prometheus
 
 import (
+	"github.com/percona/promconfig"
 	"io/ioutil"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/pmezard/go-difflib/difflib"
-	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -59,7 +59,7 @@ func TestPrometheusConfig(t *testing.T) {
 	assert.Equal(t, "pmm", c.ScrapeConfigs[2].HTTPClientConfig.BasicAuth.Password)
 
 	// check that invalid configuration is reverted
-	c.ScrapeConfigs[1].ScrapeInterval = model.Duration(time.Second)
+	c.ScrapeConfigs[1].ScrapeInterval = promconfig.Duration(time.Second)
 	err = p.saveConfigAndReload(ctx, c)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), `scrape timeout greater than scrape interval`)

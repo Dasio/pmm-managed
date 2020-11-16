@@ -17,12 +17,9 @@
 package prometheus
 
 import (
+	"github.com/percona/promconfig"
 	"regexp"
 
-	config_url "github.com/Percona-Lab/promconfig/common/config"
-	"github.com/Percona-Lab/promconfig/config"
-	sd_config "github.com/Percona-Lab/promconfig/discovery/config"
-	"github.com/Percona-Lab/promconfig/discovery/targetgroup"
 	"github.com/prometheus/common/model"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -38,7 +35,7 @@ var (
 )
 
 // keep in sync with convertScrapeConfig
-func convertInternalScrapeConfig(cfg *config.ScrapeConfig) *ScrapeConfig {
+func convertInternalScrapeConfig(cfg *promconfig.ScrapeConfig) *ScrapeConfig {
 	var basicAuth *BasicAuth
 	if cfg.HTTPClientConfig.BasicAuth != nil {
 		basicAuth = &BasicAuth{
@@ -51,13 +48,11 @@ func convertInternalScrapeConfig(cfg *config.ScrapeConfig) *ScrapeConfig {
 	if len(cfg.ServiceDiscoveryConfig.StaticConfigs) > 0 {
 		staticConfigs = make([]StaticConfig, len(cfg.ServiceDiscoveryConfig.StaticConfigs))
 		for scI, sc := range cfg.ServiceDiscoveryConfig.StaticConfigs {
-			for _, t := range sc.Targets {
-				staticConfigs[scI].Targets = append(staticConfigs[scI].Targets, string(t[model.AddressLabel]))
-			}
+			staticConfigs[scI].Targets = sc.Targets
 			for n, v := range sc.Labels {
 				staticConfigs[scI].Labels = append(staticConfigs[scI].Labels, LabelPair{
-					Name:  string(n),
-					Value: string(v),
+					Name:  n,
+					Value: v,
 				})
 			}
 		}
@@ -91,7 +86,7 @@ func convertInternalScrapeConfig(cfg *config.ScrapeConfig) *ScrapeConfig {
 }
 
 // keep in sync with convertInternalScrapeConfig
-func convertScrapeConfig(cfg *ScrapeConfig) (*config.ScrapeConfig, error) {
+func convertScrapeConfig(cfg *ScrapeConfig) (*promconfig.ScrapeConfig, error) {
 	if len(cfg.JobName) < scrapeConfigJobNameMinLength || len(cfg.JobName) > scrapeConfigJobNameMaxLength || !scrapeConfigJobNameRE.MatchString(cfg.JobName) {
 		msg := "job_name: invalid format. Job name must be 2 to 60 characters long, characters long, contain only letters, numbers, and symbols '-', '_', and start with a letter."
 		return nil, status.Error(codes.InvalidArgument, msg)
@@ -112,24 +107,24 @@ func convertScrapeConfig(cfg *ScrapeConfig) (*config.ScrapeConfig, error) {
 		}
 	}
 
-	var basicAuth *config_url.BasicAuth
+	var basicAuth *promconfig.BasicAuth
 	if cfg.BasicAuth != nil {
-		basicAuth = &config_url.BasicAuth{
+		basicAuth = &promconfig.BasicAuth{
 			Username: cfg.BasicAuth.Username,
 			Password: cfg.BasicAuth.Password,
 		}
 	}
 
-	tg := make([]*targetgroup.Group, len(cfg.StaticConfigs))
+	tg := make([]*promconfig.Group, len(cfg.StaticConfigs))
 	for i, sc := range cfg.StaticConfigs {
-		tg[i] = new(targetgroup.Group)
+		tg[i] = new(promconfig.Group)
 
 		for _, t := range sc.Targets {
 			ls := model.LabelSet{model.AddressLabel: model.LabelValue(t)}
 			if err = ls.Validate(); err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "static_configs.targets: %s", err)
 			}
-			tg[i].Targets = append(tg[i].Targets, ls)
+			tg[i].Targets = append(tg[i].Targets, t)
 		}
 
 		ls := make(model.LabelSet)
@@ -139,31 +134,33 @@ func convertScrapeConfig(cfg *ScrapeConfig) (*config.ScrapeConfig, error) {
 		if err = ls.Validate(); err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "static_configs.labels: %s", err)
 		}
-		tg[i].Labels = ls
+		for _, label := range sc.Labels {
+			tg[i].Labels[label.Name] = label.Value
+		}
 	}
 
-	relabelConfigs := make([]*config.RelabelConfig, len(cfg.RelabelConfigs))
+	relabelConfigs := make([]*promconfig.RelabelConfig, len(cfg.RelabelConfigs))
 	for i, rc := range cfg.RelabelConfigs {
-		relabelConfigs[i] = &config.RelabelConfig{
+		relabelConfigs[i] = &promconfig.RelabelConfig{
 			TargetLabel: rc.TargetLabel,
 			Replacement: rc.Replacement,
 		}
 	}
 
-	return &config.ScrapeConfig{
+	return &promconfig.ScrapeConfig{
 		JobName:        cfg.JobName,
-		ScrapeInterval: interval,
-		ScrapeTimeout:  timeout,
+		ScrapeInterval: promconfig.Duration(interval),
+		ScrapeTimeout:  promconfig.Duration(timeout),
 		MetricsPath:    cfg.MetricsPath,
 		HonorLabels:    cfg.HonorLabels,
 		Scheme:         cfg.Scheme,
-		HTTPClientConfig: config_url.HTTPClientConfig{
+		HTTPClientConfig: promconfig.HTTPClientConfig{
 			BasicAuth: basicAuth,
-			TLSConfig: config_url.TLSConfig{
+			TLSConfig: promconfig.TLSConfig{
 				InsecureSkipVerify: cfg.TLSConfig.InsecureSkipVerify,
 			},
 		},
-		ServiceDiscoveryConfig: sd_config.ServiceDiscoveryConfig{
+		ServiceDiscoveryConfig: promconfig.ServiceDiscoveryConfig{
 			StaticConfigs: tg,
 		},
 		RelabelConfigs: relabelConfigs,
@@ -175,7 +172,7 @@ func convertScrapeConfig(cfg *ScrapeConfig) (*config.ScrapeConfig, error) {
 // Input-output is done in Service.
 type configUpdater struct {
 	consulData []ScrapeConfig
-	fileData   []*config.ScrapeConfig
+	fileData   []*promconfig.ScrapeConfig
 }
 
 func (cu *configUpdater) addScrapeConfig(scrapeConfig *ScrapeConfig) error {

@@ -28,7 +28,7 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/Percona-Lab/promconfig/config"
+	"github.com/percona/promconfig"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -69,8 +69,8 @@ func NewService(config string, baseURL string, promtool string, consul *consul.C
 }
 
 // loadConfig loads current Prometheus configuration from file.
-func (svc *Service) loadConfig() (*config.Config, error) {
-	cfg, err := config.LoadFile(svc.ConfigPath)
+func (svc *Service) loadConfig() (*promconfig.Config, error) {
+	cfg, err := LoadFile(svc.ConfigPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "can't load Prometheus configuration file")
 	}
@@ -79,7 +79,7 @@ func (svc *Service) loadConfig() (*config.Config, error) {
 
 // saveConfigAndReload saves given Prometheus configuration to file and reloads Prometheus.
 // If configuration can't be reloaded for some reason, old file is restored, and configuration is reloaded again.
-func (svc *Service) saveConfigAndReload(ctx context.Context, cfg *config.Config) error {
+func (svc *Service) saveConfigAndReload(ctx context.Context, cfg *promconfig.Config) error {
 	// read existing content
 	old, err := ioutil.ReadFile(svc.ConfigPath)
 	if err != nil {

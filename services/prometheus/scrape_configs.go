@@ -29,7 +29,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Percona-Lab/promconfig/config"
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/model"
 	"google.golang.org/grpc/codes"
@@ -209,7 +208,7 @@ func (svc *Service) checkReachability(ctx context.Context, cfg *ScrapeConfig, ta
 	var scrapeTimeout model.Duration
 	var err error
 	if cfg.ScrapeTimeout == "" {
-		scrapeTimeout = config.DefaultGlobalConfig.ScrapeTimeout
+		scrapeTimeout = model.Duration(DefaultGlobalConfig.ScrapeTimeout)
 	} else {
 		scrapeTimeout, err = model.ParseDuration(cfg.ScrapeTimeout)
 		if err != nil {
@@ -235,10 +234,10 @@ func (svc *Service) checkReachability(ctx context.Context, cfg *ScrapeConfig, ta
 				Path:   cfg.MetricsPath,
 			}
 			if cfg.Scheme == "" {
-				u.Scheme = config.DefaultScrapeConfig.Scheme
+				u.Scheme = DefaultScrapeConfig.Scheme
 			}
 			if cfg.MetricsPath == "" {
-				u.Path = config.DefaultScrapeConfig.MetricsPath
+				u.Path = DefaultScrapeConfig.MetricsPath
 			}
 			if cfg.BasicAuth != nil {
 				u.User = url.UserPassword(cfg.BasicAuth.Username, cfg.BasicAuth.Password)
